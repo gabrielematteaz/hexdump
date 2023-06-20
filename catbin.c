@@ -2,6 +2,7 @@
 #include "mttstr.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 int main(int argc, char *argv[])
 {
@@ -54,18 +55,19 @@ int main(int argc, char *argv[])
 
 		if (cont)
 		{
-			char *line = malloc(sects * (cols * 2 + cols - 1) + 2 * (sects - 1) + 1);
+			size_t linesize = sects * (cols * 2 + cols - 1) + 2 * (sects - 1);
+			char *line = malloc(linesize + sects * cols + sects + 1);
 
 			if (line)
 			{
 				size_t sect = 0, col;
-				char *l = line, *c = cont, *cl = c + lim;
+				char *l = line, *line2 = l + linesize + 2, *l2 = line2, *c = cont, *cl = c + lim;
 
 				fseek(file, ofs, SEEK_SET), lim = fread(cont, 1, lim, file), cont = realloc(cont, lim);
 
 				while (1)
 				{
-					sect++, col = 0;
+					sect++, col = 0, l2 = l2 + cols;
 
 					while (1)
 					{
@@ -78,14 +80,14 @@ int main(int argc, char *argv[])
 
 					if (sect == sects) break;
 
-					*l++ = ' ', *l++ = ' ';
+					*l++ = ' ', *l++ = ' ', *l2++ = ' ';
 				}
 
-				*l = 0;
+				*l++ = ' ', *l++ = ' ', *l2 = 0;
 
 				while (c < cl)
 				{
-					sect = 0, l = line;
+					sect = 0, l = line, l2 = line2;
 
 					while (1)
 					{
@@ -93,9 +95,9 @@ int main(int argc, char *argv[])
 
 						while (1)
 						{
-							l = l + mttstr_uval_to_fstr(l, (unsigned char)*c, 16, 2, VTFS_PREP_ZEROS);
+							unsigned char cc = *c;
 
-							c++;
+							l = l + mttstr_uval_to_fstr(l, cc, 16, 2, VTFS_PREP_ZEROS), *l2++ = isprint(cc) ? cc : '.', c++;
 
 							if (c == cl)
 							{
@@ -113,7 +115,7 @@ int main(int argc, char *argv[])
 
 						if (sect == sects) break;
 
-						l = l + 2;
+						l = l + 2, l2++;
 					}
 
 					puts(line);
