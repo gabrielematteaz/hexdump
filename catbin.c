@@ -1,14 +1,45 @@
+#include <getopt.h>
 #include <stdio.h>
 #include "mttstr.h"
 #include <stdlib.h>
 #include <ctype.h>
 
-int main(void)
+int main(int argc, char *argv[])
 {
-	char *fname = "mttstr.h";
-	size_t ofs = 0, lim = 0, sects = 2, cols = 8;
+	size_t ofs = 0, lim = 256, sects = 2, cols = 8;
 
-	FILE* file = fopen(fname, "rb");
+	while (1)
+	{
+		int opt = getopt(argc, argv, "o:l:s:c:");
+
+		if (opt == -1) break;
+
+		switch (opt)
+		{
+		case 'o':
+			ofs = mttstr_str_to_uval(optarg, NULL, 10, STV_SKIP_BLNKS | STUV_MCASE);
+
+			break;
+		case 'l':
+			lim = mttstr_str_to_uval(optarg, NULL, 10, STV_SKIP_BLNKS | STUV_MCASE);
+
+			break;
+		case 's':
+			sects = mttstr_str_to_uval(optarg, NULL, 10, STV_SKIP_BLNKS | STUV_MCASE);
+
+			if (sects == 0) sects = 2;
+
+			break;
+		case 'c':
+			cols = mttstr_str_to_uval(optarg, NULL, 10, STV_SKIP_BLNKS | STUV_MCASE);
+
+			if (cols == 0) cols = 8;
+
+			break;
+		}
+	}
+
+	FILE* file = fopen(argv[optind], "rb");
 
 	if (file)
 	{
@@ -97,7 +128,7 @@ int main(void)
 
 						while (1)
 						{
-							char ccc;
+							unsigned char ccc;
 
 							if (contc == cl)
 							{
