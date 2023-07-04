@@ -1,127 +1,137 @@
-#include <unistd.h>
-#include "mttstr.h"
 #include <stdio.h>
+#include "mttstr.h"
 #include <stdlib.h>
 #include <ctype.h>
 
-int main(int argc, char *argv[])
+int main(void)
 {
-	size_t ofs = 0;
-	size_t lim = 0;
-	size_t sects = 2;
-	size_t cols = 8;
-	FILE* file;
+	char *fname = "mttstr.h";
+	size_t ofs = 0, lim = 0, sects = 2, cols = 8;
 
-	while (1)
-	{
-		int opt = getopt(argc, argv, "o:l:s:c:");
-
-		if (opt == -1) break;
-
-		switch (opt)
-		{
-		case 'o':
-			ofs = mttstr_str_to_uval(optarg, NULL, 10, 0);
-
-			break;
-		case 'l':
-			lim = mttstr_str_to_uval(optarg, NULL, 10, 0);
-
-			break;
-		case 's':
-			sects = mttstr_str_to_uval(optarg, NULL, 10, 0);
-
-			if (sects == 0) sects = 2;
-
-			break;
-		case 'c':
-			cols = mttstr_str_to_uval(optarg, NULL, 10, 0);
-
-			if (cols == 0) cols = 8;
-
-			break;
-		}
-	}
-
-	file = fopen(argv[optind], "rb");
+	FILE* file = fopen(fname, "rb");
 
 	if (file)
 	{
 		char *cont;
 
-		if (lim == 0) fseek(file, 0, SEEK_END), lim = ftell(file) - ofs;
+		if (lim == 0) fseek(file, 0, SEEK_END), lim = ftell(file);
 
 		cont = malloc(lim);
 
 		if (cont)
 		{
-			size_t linesize = sects * (cols * 2 + cols - 1) + 2 * (sects - 1);
-			char *line = malloc(linesize + sects * cols + sects + 1);
+			size_t halflinesize, linesize, maxrnlen;
+			char rownum[16], *line, *contc = cont, *cl;
+
+			fseek(file, ofs, SEEK_SET), lim = fread(cont, 1, lim, file), cont = realloc(cont, lim);
+			maxrnlen = mttstr_uval_to_str_s(rownum, sizeof(rownum), lim - lim % sects * cols, 16, 0), halflinesize = maxrnlen + 3 + (sects * (cols * 2 + cols - 1) + 2 * (sects - 1)) +  3,  linesize = halflinesize + (sects * cols + sects - 1);
+			line = malloc(linesize + 1);
 
 			if (line)
 			{
-				size_t sect = 0, col;
-				char *l = line, *line2 = l + linesize + 2, *l2 = line2, *c = cont, *cl = c + lim;
+				char *lc = line, *lca;
+				size_t c, sect = 0, col;
 
-				fseek(file, ofs, SEEK_SET), lim = fread(cont, 1, lim, file), cont = realloc(cont, lim);
+				line[linesize] = 0;
+
+				lc = lc + maxrnlen;
+
+				c = 0;
+
+				while (c < 3) *lc++ = ' ', c++;
 
 				while (1)
 				{
-					sect++, col = 0, l2 = l2 + cols;
+					col = 0;
 
 					while (1)
 					{
-						l = l + 2, col++;
+						lc = lc + 2;
+
+						col++;
 
 						if (col == cols) break;
 
-						*l++ = ' ';
+						c = 0;
+
+						while (c < 1) *lc++ = ' ', c++;
 					}
+
+					sect++;
 
 					if (sect == sects) break;
 
-					*l++ = ' ', *l++ = ' ', *l2++ = ' ';
+					c = 0;
+
+					while (c < 2) *lc++ = ' ', c++;
 				}
 
-				*l++ = ' ', *l++ = ' ', *l2 = 0;
+				c = 0;
 
-				while (c < cl)
+				while (c < 3) *lc++ = ' ', c++;
+
+				sect = 0;
+
+				while (1)
 				{
-					sect = 0, l = line, l2 = line2;
+					lc = lc + cols;
+
+					sect++;
+
+					if (sect == sects) break;
+
+					c = 0;
+
+					while (c < 1) *lc++ = ' ', c++;
+				}
+
+				cl = contc + lim;
+
+				while (1)
+				{
+					sect = 0, lc = line + mttstr_uval_to_fstr(line, contc - cont, 16, maxrnlen, VTFS_PREP_ZEROS) + 3, lca = line + halflinesize;
 
 					while (1)
 					{
-						sect++, col = 0;
+						col = 0;
 
 						while (1)
 						{
-							unsigned char cc = *c;
+							char ccc;
 
-							l = l + mttstr_uval_to_fstr(l, cc, 16, 2, VTFS_PREP_ZEROS), *l2++ = isprint(cc) ? cc : '.', c++;
-
-							if (c == cl)
+							if (contc == cl)
 							{
-								*l = 0, puts(line);
+								while (lc < line + halflinesize) *lc++ = ' ';
 
-								goto end;
+								while (lca < line + linesize) *lca++ = ' ';
+
+								puts(line);
+
+								goto exit;
 							}
+
+							ccc = *contc, lc = lc + mttstr_uval_to_fstr(lc, ccc, 16, 2, VTFS_PREP_ZEROS), *lca++ = isprint(ccc) ? ccc : '.';
+
+							contc++;
 
 							col++;
 
 							if (col == cols) break;
 
-							l++;
+							lc++;
 						}
+
+						sect++;
 
 						if (sect == sects) break;
 
-						l = l + 2, l2++;
+						lca++, lc = lc + 2;
 					}
 
 					puts(line);
 				}
 
-			end:
+			exit:
 				free(line);
 			}
 
