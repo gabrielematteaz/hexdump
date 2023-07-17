@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
 	};
 
 	int avoff = mttopt_extract_optv(argc, argv, sizeof(optv) / sizeof(*optv), optv);
-	struct mttstr_fmt_t optfmt = { 0, '-', ' ', 10, 0 }, rowfmt, hexfmt;
+	struct mttstr_fmt_t optfmt = { '+', 0, ' ', 10, 0 }, rowfmt, hexfmt;
 	long off = mttstr_fstr_to_ival(optv[0].arg, NULL, optfmt);
 	char *cont, *line, *l, *lhexsect, *lcharsect, *lhs, *lcs, *c, *cs;
 	size_t lim = optv[1].status == FOUND ? mttstr_fstr_to_ival(optv[1].arg, NULL, optfmt) : 256, size = mttfile_load_file(argv[avoff], &cont, off, &lim, RESIZE), sects, cols, bytesxrow, rowcount, linesize, sect, col, row;
@@ -49,7 +49,6 @@ int main(int argc, char *argv[])
 		rowfmt.flags = 0;
 		rowfmt.width = 0;
 		rowfmt.width = mttstr_ival_to_fstr(NULL, rowcount, rowfmt);
-		printf("%zu\n", rowfmt.width);
 		linesize = rowfmt.width + 3 + sects * (2 * cols + cols - 1) + 2 * (sects - 1) + 3 + sects * cols + sects;
 		line = malloc(linesize);
 
