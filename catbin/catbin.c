@@ -49,6 +49,7 @@ int main(int argc, char *argv[])
 		rowfmt.flags = 0;
 		rowfmt.width = 0;
 		rowfmt.width = mttstr_ival_to_fstr(NULL, rowcount, rowfmt);
+		printf("%zu\n", rowfmt.width);
 		linesize = rowfmt.width + 3 + sects * (2 * cols + cols - 1) + 2 * (sects - 1) + 3 + sects * cols + sects;
 		line = malloc(linesize);
 
@@ -122,7 +123,7 @@ int main(int argc, char *argv[])
 
 			while (1)
 			{
-				mttstr_ival_to_fstr(line, row, hexfmt);
+				mttstr_ival_to_fstr(line, row, rowfmt);
 				lhs = lhexsect;
 				lcs = lcharsect;
 				sect = 0;
