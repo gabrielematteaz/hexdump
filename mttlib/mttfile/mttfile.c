@@ -1,8 +1,8 @@
 #include "mttfile.h"
 
-size_t mttfile_load_file(const char *name, char **cont, long off, size_t *lim, enum mttfile_flags_t flags)
+size_t mttfile_load_file(char *name, char **cont, long off, size_t *lim, enum mttfile_flags_t flags)
 {
-	FILE* file;
+	FILE *file;
 	size_t l, size;
 	char *c;
 
@@ -12,21 +12,24 @@ size_t mttfile_load_file(const char *name, char **cont, long off, size_t *lim, e
 
 		if (file != NULL)
 		{
-			l = lim == NULL ? 0 : *lim;
-
-			if (l == 0)
+			if (lim != NULL)
 			{
+				l = *lim;
+
+				if (l == 0) goto entire_file;
+
+				size = l;
+
+				if (flags & STRING) l--;
+			}
+			else
+			{
+			entire_file:
 				fseek(file, 0, SEEK_END);
 				l = ftell(file);
 				size = l;
 
 				if (flags & STRING) size++;
-			}
-			else
-			{
-				size = l;
-
-				if (flags & STRING) l--;
 			}
 
 			if (fseek(file, off, SEEK_SET) == 0)
@@ -34,7 +37,7 @@ size_t mttfile_load_file(const char *name, char **cont, long off, size_t *lim, e
 				c = malloc(size);
 
 				if (c != NULL)
-				{
+				{	
 					l = fread(c, 1, l, file);
 
 					if (flags & STRING)
@@ -53,11 +56,10 @@ size_t mttfile_load_file(const char *name, char **cont, long off, size_t *lim, e
 						c = realloc(c, size);
 					}
 
-					*cont = c;
-					
-					if (lim) *lim = l;
-
 					fclose(file);
+					*cont = c;
+
+					if (lim != NULL) *lim = l;
 
 					return size;
 				}

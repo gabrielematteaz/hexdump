@@ -6,28 +6,35 @@
 
 void *mttstr_mem_rev(void *mem, size_t n);
 
-enum mttstr_fillmode_t
+enum mttstr_fmt_fillmode_t
 {
-	NONE,
-	UNKNOWN,
 	LEFT,
 	INTERNAL,
-	RIGHT,
+	RIGHT
 };
 
-enum mttstr_flags_t
+enum mttstr_fmt_flags_t
 {
 	UCASE = 0,
 	LCASE = 1,
 	MCASE = 2,
 	DO_NOT_NULL_TERM = 0,
-	NULL_TERM = 4,
+	NULL_TERM = 4
+};
+
+struct mttstr_fmt_t
+{
+	char plus, minus, fill;
+	int base;
+	enum mttstr_fmt_fillmode_t fillmode;
+	enum mttstr_fmt_flags_t flags;
+	size_t width;
 };
 
 #define IS_VAL_NEG(val) (val & (size_t)1 << (sizeof(val) * CHAR_BIT - 1))
 
-size_t mttstr_ival_to_fstr(char *fstr, size_t ival, char base, char plus, char minus, char fill, enum mttstr_fillmode_t fillmode, size_t width, enum mttstr_flags_t flags);
+size_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt);
 
-size_t mttstr_fstr_to_ival(char *fstr, char **last, char base, char plus, char minus, char fill, enum mttstr_fillmode_t fillmode, enum mttstr_flags_t flags);
+size_t mttstr_fstr_to_ival(char *fstr, char **last, struct mttstr_fmt_t fmt);
 
 #endif

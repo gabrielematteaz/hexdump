@@ -21,16 +21,16 @@ void *mttstr_mem_rev(void *mem, size_t n)
 	return mem;
 }
 
-size_t mttstr_ival_to_fstr(char *fstr, size_t ival, char base, char plus, char minus, char fill, enum mttstr_fillmode_t fillmode, size_t width, enum mttstr_flags_t flags)
+size_t mttstr_ival_to_fstr(char *fstr, size_t ival, struct mttstr_fmt_t fmt)
 {
 	size_t i, len;
 	char *f, a, rem, *fw;
 
-	if (2 <= base && base <= 36)
+	if (2 <= fmt.base && fmt.base <= 36)
 	{
 		if (fstr != NULL)
 		{
-			if (minus && IS_VAL_NEG(ival))
+			if (fmt.minus && IS_VAL_NEG(ival))
 			{
 				i = ival;
 				ival = -ival;
@@ -39,14 +39,14 @@ size_t mttstr_ival_to_fstr(char *fstr, size_t ival, char base, char plus, char m
 
 			f = fstr;
 
-			if (base > 10)
+			if (fmt.base > 10)
 			{
-				a = flags & LCASE ? 87 : 55;
+				a = fmt.flags & LCASE ? 87 : 55;
 
 				do
 				{
-					rem = ival % base;
-					ival /= base;
+					rem = ival % fmt.base;
+					ival /= fmt.base;
 					*f = (rem < 10 ? '0' : a) + rem;
 					f++;
 				} while (ival);
@@ -55,36 +55,36 @@ size_t mttstr_ival_to_fstr(char *fstr, size_t ival, char base, char plus, char m
 			{
 				do
 				{
-					*f = '0' + ival % base;
-					ival /= base;
+					*f = '0' + ival % fmt.base;
+					ival /= fmt.base;
 					f++;
 				} while (ival);
 			}
 
-			switch (fillmode)
+			switch (fmt.fillmode)
 			{
 			case INTERNAL:
-				fw = fstr + width - 1;
+				fw = fstr + fmt.width - 1;
 
 				while (f < fw)
 				{
-					*f = fill;
+					*f = fmt.fill;
 					f++;
 				}
 
 				if IS_VAL_NEG(i)
 				{
-					*f = minus;
+					*f = fmt.minus;
 					f++;
 				}
-				else if (plus)
+				else if (fmt.plus)
 				{
-					*f = plus;
+					*f = fmt.plus;
 					f++;
 				}
 				else if (f == fw)
 				{
-					*f = fill;
+					*f = fmt.fill;
 					f++;
 				}
 
@@ -95,44 +95,45 @@ size_t mttstr_ival_to_fstr(char *fstr, size_t ival, char base, char plus, char m
 			case RIGHT:
 				if IS_VAL_NEG(i)
 				{
-					*f = minus;
+					*f = fmt.minus;
 					f++;
 				}
-				else if (plus)
+				else if (fmt.plus)
 				{
-					*f = plus;
+					*f = fmt.plus;
 					f++;
 				}
 
 				mttstr_mem_rev(fstr, f - fstr);
-				fw = fstr + width;
+
+				fw = fstr + fmt.width;
 
 				while (f < fw)
 				{
-					*f = fill;
+					*f = fmt.fill;
 					f++;
 				}
 
 				len = f - fstr;
-
+				
 				break;
 			default:
 				if IS_VAL_NEG(i)
 				{
-					*f = minus;
+					*f = fmt.minus;
 					f++;
 				}
-				else if (plus)
+				else if (fmt.plus)
 				{
-					*f = plus;
+					*f = fmt.plus;
 					f++;
 				}
 
-				fw = fstr + width;
+				fw = fstr + fmt.width;
 
 				while (f < fw)
 				{
-					*f = fill;
+					*f = fmt.fill;
 					f++;
 				}
 
@@ -142,26 +143,24 @@ size_t mttstr_ival_to_fstr(char *fstr, size_t ival, char base, char plus, char m
 				break;
 			}
 
-			if (flags & NULL_TERM) *f = 0;
+			if (fmt.flags & NULL_TERM) *f = 0;
 		}
 		else
 		{
-			if (minus && IS_VAL_NEG(ival))
+			if (fmt.minus && IS_VAL_NEG(ival))
 			{
 				ival = -ival;
 				len = 1;
 			}
-			else len = plus ? 1 : 0;
+			else len = fmt.plus ? 1 : 0;
 
 			do
 			{
-				ival /= base;
+				ival /= fmt.base;
 				len++;
 			} while (ival);
 
-			if (len < width) len = width;
-
-			if (flags & NULL_TERM) len++;
+			if (len < fmt.width) len = fmt.width;
 		}
 
 		return len;
@@ -170,46 +169,36 @@ size_t mttstr_ival_to_fstr(char *fstr, size_t ival, char base, char plus, char m
 	return 0;
 }
 
-size_t mttstr_fstr_to_ival(char *fstr, char **last, char base, char plus, char minus, char fill, enum mttstr_fillmode_t fillmode, enum mttstr_flags_t flags)
+size_t mttstr_fstr_to_ival(char *fstr, char **last, struct mttstr_fmt_t fmt)
 {
-	char fc, maxucase, maxlcase, min, max;
-	size_t ival, sign;
+	char fc, umax, lmax, min, max;
+	size_t s, ival;
 
-	if (fstr != NULL && 2 <= base && base <= 36)
+	if (fstr != NULL && 2 <= fmt.base && fmt.base <= 36)
 	{
 		fc = *fstr;
-		ival = 0;
 
-		switch (fillmode)
+		switch (fmt.fillmode)
 		{
-		case UNKNOWN:
-			if (fc == fill)
-			{
-				fstr++;
-				fc = *fstr;
-
-				goto left;
-			}
-
 		case INTERNAL:
-			if (fc == minus)
+			if (fc == fmt.minus)
 			{
 				fstr++;
 				fc = *fstr;
-				sign = -1;
+				s = -1;
 			}
 			else
 			{
-				if (fc == plus)
+				if (fc == fmt.plus)
 				{
 					fstr++;
 					fc = *fstr;
 				}
 
-				sign = 1;
+				s = 1;
 			}
 
-			while (fc == fill)
+			while (fc == fmt.fill)
 			{
 				fstr++;
 				fc = *fstr;
@@ -217,46 +206,47 @@ size_t mttstr_fstr_to_ival(char *fstr, char **last, char base, char plus, char m
 
 			break;
 		default:
-		left:
-			while (fc == fill)
+			while (fc == fmt.fill)
 			{
 				fstr++;
 				fc = *fstr;
 			}
 
-		case NONE: case RIGHT:
-			if (fc == minus)
+		case RIGHT:
+			if (fc == fmt.minus)
 			{
 				fstr++;
 				fc = *fstr;
-				sign = -1;
+				s = -1;
 			}
 			else
 			{
-				if (fc == plus)
+				if (fc == fmt.plus)
 				{
 					fstr++;
 					fc = *fstr;
 				}
 
-				sign = 1;
+				s = 1;
 			}
 
 			break;
 		}
 
-		if (base > 10)
+		ival = 0;
+
+		if (fmt.base > 10)
 		{
-			if (flags & MCASE)
+			if (fmt.flags & MCASE)
 			{
-				maxucase = 'A' + base - 10;
-				maxlcase = maxucase + 32;
+				umax = 'A' + fmt.base - 10;
+				lmax = umax + 32;
 
 				while (1)
 				{
-					if ('0' <= fc && fc <= '9') ival = ival * base + fc - '0';
-					else if ('A' <= fc && fc < maxucase) ival = ival * base + fc - 55;
-					else if ('a' <= fc && fc < maxlcase) ival = ival * base + fc - 87;
+					if ('0' <= fc && fc <= '9') ival = ival * fmt.base + fc - '0';
+					else if ('A' <= fc && fc < umax) ival = ival * fmt.base + fc - 55;
+					else if ('a' <= fc && fc < lmax) ival = ival * fmt.base + fc - 87;
 					else break;
 
 					fstr++;
@@ -265,13 +255,13 @@ size_t mttstr_fstr_to_ival(char *fstr, char **last, char base, char plus, char m
 			}
 			else
 			{
-				min = flags & LCASE ? 'a' : 'A';
-				max = min + base - 10;
+				min = fmt.flags & LCASE ? 'a' : 'A';
+				max = min + fmt.base - 10;
 
 				while (1)
 				{
-					if ('0' <= fc && fc <= '9') ival = ival * base + fc - '0';
-					else if (min <= fc && fc < max) ival = ival * base + fc - min + 10;
+					if ('0' <= fc && fc <= '9') ival = ival * fmt.base + fc - '0';
+					else if (min <= fc && fc < max) ival = ival * fmt.base + fc - min + 10;
 					else break;
 
 					fstr++;
@@ -281,19 +271,19 @@ size_t mttstr_fstr_to_ival(char *fstr, char **last, char base, char plus, char m
 		}
 		else
 		{
-			max = '0' + base;
+			max = '0' + fmt.base;
 
 			while ('0' <= fc && fc < max)
 			{
 				fstr++;
-				ival = ival * base + fc - '0';
+				ival = ival * fmt.base + fc - '0';
 				fc = *fstr;
 			}
 		}
 
 		if (last != NULL) *last = fstr;
 
-		return sign * ival;
+		return s * ival;
 	}
 
 	if (last != NULL) *last = NULL;
