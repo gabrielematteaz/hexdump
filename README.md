@@ -1,5 +1,5 @@
 # catbin
-Simple C utility to print files' content like in binary format
+Simple C++ utility to print files' content like in binary format
 
 # Flags
 -o <offset>: Sets the starting offset in the file (default: 0)<br>
