@@ -47,10 +47,7 @@ int main(int argc, char *argv[])
 	}
 	else cols = 8;
 
-	std::size_t bytesxrow = sects * cols, contsize = cont.size(), rowcount = contsize / bytesxrow;
-
-	if (contsize % bytesxrow) rowcount++;
-
+	std::size_t bytesxrow = sects * cols, contsize = cont.size(), rowcount = (contsize - 1) / bytesxrow;
 	mttstr_fmt_t hexfmt(16, 0, 0, '0', FMT_FLAGS_LEFT_FILL, 0);
 	std::size_t rcwidth = hexfmt.ival_to_fstr(nullptr, rowcount), linesize = rcwidth + 3 + sects * (2 * cols + cols - 1) + 2 * (cols - 1) + 3 + sects * cols + cols;
 	char *line = new char[linesize];
