@@ -142,10 +142,10 @@ int main(int argc, char *argv[])
 				rowcount++;
 			}
 
+		exit:
 			free(line);
 		}
 
-	exit:
 		free(cont);
 	}
 
