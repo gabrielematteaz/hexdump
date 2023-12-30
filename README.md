@@ -2,11 +2,11 @@
 "hexdump" utility for Windows
 
 # Flags
-/offset <>
-/bytesToRead <>
-/columns <>
-/offsetBase <>
-/byteBase <>
+/offset <><br>
+/bytesToRead <><br>
+/columns <><br>
+/offsetBase <><br>
+/byteBase <><br>
 
 # Example
 ```shell
